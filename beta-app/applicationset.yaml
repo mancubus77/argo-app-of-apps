@@ -1,0 +1,76 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: guestbook-beta
+  namespace: openshift-gitops
+spec:
+  generators:
+    - merge:
+        generators:
+          - clusterDecisionResource:
+              configMapRef: acm-placement
+              labelSelector:
+                matchLabels:
+                  cluster.open-cluster-management.io/placement: guestbook-beta-placement
+              requeueAfterSeconds: 180
+          - clusters: {}
+        mergeKeys:
+          - server
+  template:
+    metadata:
+      name: guestbook-beta-{{name}}
+      labels:
+        app.kubernetes.io/name: guestbook-beta
+        apps.open-cluster-management.io/pull-to-ocm-managed-cluster: "true"
+      annotations:
+        apps.open-cluster-management.io/ocm-managed-cluster: "{{name}}"
+        apps.open-cluster-management.io/ocm-managed-cluster-app-namespace: dropzone-beta
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/mancubus77/guestbook-kustomize
+        targetRevision: main
+        path: overlays/{{metadata.labels.overlay}}
+      destination:
+        namespace: dropzone-beta
+        server: "{{server}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: guestbook-beta-placement
+  namespace: openshift-gitops
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            guestbook-beta: "true"
+---
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: default
+  namespace: openshift-gitops
+spec:
+  clusterSet: default
+---
+apiVersion: apps.open-cluster-management.io/v1beta1
+kind: GitOpsCluster
+metadata:
+  name: guestbook-beta-gitops
+  namespace: openshift-gitops
+spec:
+  argoServer:
+    cluster: local-cluster
+    argoNamespace: openshift-gitops
+  placementRef:
+    kind: Placement
+    apiVersion: cluster.open-cluster-management.io/v1beta1
+    name: guestbook-beta-placement
