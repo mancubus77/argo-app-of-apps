@@ -53,14 +53,6 @@ spec:
           matchLabels:
             guestbook: "true"
 ---
-apiVersion: cluster.open-cluster-management.io/v1beta2
-kind: ManagedClusterSetBinding
-metadata:
-  name: default
-  namespace: openshift-gitops
-spec:
-  clusterSet: default
----
 apiVersion: apps.open-cluster-management.io/v1beta1
 kind: GitOpsCluster
 metadata:
