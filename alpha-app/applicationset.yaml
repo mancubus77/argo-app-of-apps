@@ -1,68 +1,46 @@
+# Guestbook Application - Managed Mode (Agent Architecture)
+# Applications are created in per-agent namespaces on the hub.
+# The principal routes each Application to the agent matching the namespace name.
+# destination.server is https://kubernetes.default.svc — the agent transforms it to in-cluster.
+---
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
-  name: guestbook
-  namespace: openshift-gitops
+  name: guestbook-hcp000
+  namespace: hcp000
 spec:
-  generators:
-    - merge:
-        generators:
-          - clusterDecisionResource:
-              configMapRef: acm-placement
-              labelSelector:
-                matchLabels:
-                  cluster.open-cluster-management.io/placement: guestbook-placement
-              requeueAfterSeconds: 180
-          - clusters: {}
-        mergeKeys:
-          - server
-  template:
-    metadata:
-      name: guestbook-{{name}}
-      labels:
-        app.kubernetes.io/name: guestbook
-        apps.open-cluster-management.io/pull-to-ocm-managed-cluster: "true"
-      annotations:
-        apps.open-cluster-management.io/ocm-managed-cluster: "{{name}}"
-        apps.open-cluster-management.io/ocm-managed-cluster-app-namespace: dropzone
-    spec:
-      project: default
-      source:
-        repoURL: https://github.com/mancubus77/guestbook-kustomize
-        targetRevision: main
-        path: overlays/{{metadata.labels.overlay}}
-      destination:
-        namespace: dropzone
-        server: "{{server}}"
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
+  project: hcp000-default
+  source:
+    repoURL: https://github.com/mancubus77/guestbook-kustomize
+    targetRevision: main
+    path: overlays/site1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dropzone
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
 ---
-apiVersion: cluster.open-cluster-management.io/v1beta1
-kind: Placement
+apiVersion: argoproj.io/v1alpha1
+kind: Application
 metadata:
-  name: guestbook-placement
-  namespace: openshift-gitops
+  name: guestbook-hcp001
+  namespace: hcp001
 spec:
-  predicates:
-    - requiredClusterSelector:
-        labelSelector:
-          matchLabels:
-            guestbook: "true"
----
-apiVersion: apps.open-cluster-management.io/v1beta1
-kind: GitOpsCluster
-metadata:
-  name: guestbook-gitops
-  namespace: openshift-gitops
-spec:
-  argoServer:
-    cluster: local-cluster
-    argoNamespace: openshift-gitops
-  placementRef:
-    kind: Placement
-    apiVersion: cluster.open-cluster-management.io/v1beta1
-    name: guestbook-placement
+  project: hcp001-default
+  source:
+    repoURL: https://github.com/mancubus77/guestbook-kustomize
+    targetRevision: main
+    path: overlays/site2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dropzone
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
